@@ -1,11 +1,15 @@
-import hmac
-
+"""Authentication helpers for API key based access."""
+import hashlib
 from fastapi import Header, HTTPException
 
-from .config import settings
+from app.config import settings
 
 
-def verify_api_key(x_api_key: str = Header(...)) -> str:
-    if not hmac.compare_digest(x_api_key, settings.AGENT_API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return "authenticated-user"
+def verify_api_key(x_api_key: str = Header(default="")) -> str:
+    if not x_api_key or x_api_key != settings.agent_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key. Include header X-API-Key.",
+        )
+    # Derive a deterministic internal user id from API key.
+    return hashlib.sha256(x_api_key.encode("utf-8")).hexdigest()[:16]
