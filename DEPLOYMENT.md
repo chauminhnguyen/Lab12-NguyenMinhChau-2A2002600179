@@ -1,7 +1,7 @@
 # Deployment Information
 
 ## Public URL
-https://lab12-production-5585.up.railway.app
+https://my-production-agent-production-db98.up.railway.app
 
 ## Platform
 Railway
@@ -10,20 +10,40 @@ Railway
 
 ### Health Check
 ```bash
-curl https://lab12-production-5585.up.railway.app/health
+curl https://my-production-agent-production-db98.up.railway.app/health
 ```
 
 ### Readiness Check
 ```bash
-curl ttps://lab12-production-5585.up.railway.app/ready
+curl https://my-production-agent-production-db98.up.railway.app/
+```
+
+Result:
+```
+StatusCode        : 200
+StatusDescription : 
+Content           : {"status":"degraded","version":"1.0.0","environment":"development","uptime_seconds":3083.2,"total_requests
+                    ":20,"checks":{"llm":"mock","redis":false},"timestamp":"2026-04-17T18:06:40.689922+00:00"}
+RawContent        : HTTP/1.1 200 
+                    Connection: keep-alive
+                    x-railway-cdn-edge: fastly/cache-hkg17926-HKG
+                    referrer-policy: strict-origin-when-cross-origin
+                    x-content-type-options: nosniff
+                    x-frame-options: DENY
+                    x-railwa...
+Forms             : {}
+Headers           : {[Connection, keep-alive], [x-railway-cdn-edge, fastly/cache-hkg17926-HKG], [referrer-policy,
+                    strict-origin-when-cross-origin], [x-content-type-options, nosniff]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 196
 ```
 
 ### API Test (with authentication)
 ```bash
-curl -X POST ttps://lab12-production-5585.up.railway.app/ask \
-  -H "X-API-Key: my-secret-key-123" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "Hello"}'
+curl -X POST https://my-production-agent-production-db98.up.railway.app/ask -H "X-API-Key: my-secret-key-123" -H "Content-Type: application/json" -d '{"question": "Hello"}'
 ```
 
 ## Environment Variables Set

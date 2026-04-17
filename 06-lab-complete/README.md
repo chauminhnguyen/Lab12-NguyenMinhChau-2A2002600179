@@ -63,26 +63,128 @@ curl -H "X-API-Key: $API_KEY" \
 
 ---
 
-## Deploy Railway (< 5 phút)
+## Deploy Railway bằng CLI (chi tiết)
+
+Playbook này dành cho trường hợp deploy mới hoàn toàn, có thể đổi account, tránh link nhầm service, và chạy được ngay.
+
+### 0) Đứng đúng thư mục project
 
 ```bash
-# Cài Railway CLI
-npm i -g @railway/cli
-
-# Login và deploy
-railway login
-railway init
-railway variables set ENVIRONMENT=production
-railway variables set AGENT_API_KEY=your-secret-key
-railway variables set JWT_SECRET=your-jwt-secret
-railway variables set REDIS_URL=redis://localhost:6379/0
-railway variables set RATE_LIMIT_PER_MINUTE=10
-railway variables set MONTHLY_BUDGET_USD=10.0
-railway up
-
-# Nhận public URL!
-railway domain
+cd day12_ha-tang-cloud_va_deployment/my-production-agent
 ```
+
+### 1) Cài CLI và đăng nhập đúng account
+
+```bash
+# Có thể dùng npx (không cần cài global)
+npx @railway/cli login
+
+# Kiểm tra account hiện tại
+npx @railway/cli whoami
+npx @railway/cli list
+```
+
+Nếu cần đổi account:
+
+```bash
+npx @railway/cli logout
+rm -rf .railway
+rm -rf ~/.railway ~/.config/railway
+npx @railway/cli login
+```
+
+### 2) Tạo project mới và link local folder
+
+```bash
+# Interactive tạo project mới
+npx @railway/cli init
+
+# Kiểm tra context hiện tại
+npx @railway/cli status
+```
+
+### 3) Tạo Redis service trong project
+
+```bash
+npx @railway/cli add --database redis --service redis
+
+# Link sang Redis service để lấy connection string
+npx @railway/cli service link redis
+npx @railway/cli variables
+```
+
+Lưu lại giá trị `REDIS_URL` dạng nội bộ:
+
+```txt
+redis://default:<REDIS_PASSWORD>@redis.railway.internal:6379
+```
+
+### 4) Tạo app service và deploy snapshot đầu tiên
+
+```bash
+# Tạo service app (nếu chưa có)
+npx @railway/cli add --service my-production-agent
+
+# Link về app service (KHONG chon Redis)
+npx @railway/cli service link my-production-agent
+npx @railway/cli status
+
+# Deploy lan dau de tao snapshot
+npx @railway/cli up --detach
+```
+
+### 5) Tạo secret và set toàn bộ biến môi trường cho app
+
+Tạo nhanh secret an toàn:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Set biến (trong app service):
+
+```bash
+npx @railway/cli variable set ENVIRONMENT=production
+npx @railway/cli variable set AGENT_API_KEY=<paste_api_key_hex>
+npx @railway/cli variable set JWT_SECRET=<paste_jwt_secret_hex>
+npx @railway/cli variable set REDIS_URL='redis://default:<REDIS_PASSWORD>@redis.railway.internal:6379'
+npx @railway/cli variable set RATE_LIMIT_PER_MINUTE=10
+npx @railway/cli variable set MONTHLY_BUDGET_USD=10.0
+
+# Verify
+npx @railway/cli variables
+```
+
+### 6) Deploy lại sau khi set biến
+
+```bash
+npx @railway/cli up --detach
+npx @railway/cli domain
+```
+
+### 7) Test production endpoint
+
+```bash
+curl -i https://<your-domain>/health
+curl -i https://<your-domain>/ready
+```
+
+Test endpoint protected:
+
+```bash
+curl -i -X POST https://<your-domain>/ask \
+     -H "X-API-Key: <AGENT_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{"question":"What is deployment?"}'
+```
+
+### 8) Troubleshooting nhanh
+
+- `Cannot redeploy without a snapshot`: chưa có deploy đầu tiên cho app service. Chạy `npx @railway/cli up --detach` trong app service trước.
+- Mở domain bị `404`: thường do link nhầm service Redis hoặc app chưa running. Kiểm tra `npx @railway/cli status` + `npx @railway/cli logs`.
+- Link nhầm service: chạy `npx @railway/cli service` và chọn lại app service.
+- Không chạy lệnh có chữ giải thích như `Deploy lại:` trong terminal. Chỉ copy dòng command.
 
 ---
 
